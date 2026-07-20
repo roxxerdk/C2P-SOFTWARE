@@ -4,6 +4,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
+from rag_engine import rag_engine
 
 app = FastAPI(title="C2P AI Copilot Backend", version="0.1.0")
 
@@ -143,4 +144,21 @@ def generate_balloons(request: BalloonRequest):
         "status": "Success",
         "agent_message": f"Successfully mapped and generated {len(ballooned_features)} feature balloons.",
         "balloons": ballooned_features
+    }
+
+class SearchRequest(BaseModel):
+    query: str
+    limit: Optional[int] = 3
+
+@app.post("/search")
+def search_knowledge_base(request: SearchRequest):
+    """
+    Search endpoint representing the Memory Agent (RAG).
+    Queries Qdrant / Local indexed files for standards, tools, and material specs.
+    """
+    results = rag_engine.search(request.query, limit=request.limit)
+    return {
+        "status": "Success",
+        "query": request.query,
+        "results": results
     }

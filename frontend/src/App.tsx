@@ -6,7 +6,8 @@ import {
   Layers, 
   Code, 
   Eye,
-  Clock
+  Clock,
+  Database
 } from 'lucide-react';
 
 interface Feature {
@@ -42,6 +43,7 @@ export default function App() {
   const [uploading, setUploading] = useState(false);
   const [currentStep, setCurrentStep] = useState<number>(-1);
   const [balloons, setBalloons] = useState<any[]>([]);
+  const [ragResults, setRagResults] = useState<any[]>([]);
 
   // Agent sequence
   const [agents, setAgents] = useState<AgentProgress[]>([
@@ -191,6 +193,38 @@ export default function App() {
       addLog('Error calling Ballooning Agent.');
     }
     setCurrentStep(3);
+
+    // Step 4: Memory Agent (RAG)
+    setAgents(prev => {
+      const copy = [...prev];
+      copy[3].status = 'running';
+      copy[3].message = 'Retrieving standards & manufacturing templates from Qdrant...';
+      return copy;
+    });
+    addLog('Memory Agent triggered: Running semantic search queries...');
+    await new Promise(r => setTimeout(r, 1200));
+
+    const searchTerms = drawing.features.map(f => f.name).join(' ');
+    try {
+      const res = await fetch('http://localhost:8000/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: searchTerms, limit: 3 })
+      });
+      const data = await res.json();
+      setRagResults(data.results);
+      
+      setAgents(prev => {
+        const copy = [...prev];
+        copy[3].status = 'success';
+        copy[3].message = `Retrieved ${data.results.length} related documents.`;
+        return copy;
+      });
+      addLog(`Memory Agent complete: Retrieved ${data.results.length} matching guidelines.`);
+    } catch (err) {
+      addLog('Error querying Memory Agent RAG database.');
+    }
+    setCurrentStep(4);
   };
 
   return (
@@ -346,6 +380,35 @@ export default function App() {
                   ) : (
                     <div className="bg-gray-950/40 border border-gray-800/40 p-4 rounded-xl text-center text-xs text-gray-500">
                       Engineering JSON will display here once Drawing Understanding finishes.
+                    </div>
+                  )}
+                </div>
+
+                {/* Memory Agent RAG Retrieval Panel */}
+                <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-3 border-b border-gray-800/80 pb-3">
+                    <span className="font-semibold text-sm flex items-center space-x-2">
+                      <Database className="w-4 h-4 text-indigo-400" />
+                      <span>Memory Agent RAG Retrieval (Qdrant)</span>
+                    </span>
+                  </div>
+                  {ragResults.length > 0 ? (
+                    <div className="space-y-3">
+                      {ragResults.map((result: any, idx: number) => (
+                        <div key={idx} className="bg-gray-950 p-3 rounded-lg border border-gray-800/80">
+                          <div className="flex items-center justify-between text-xs font-bold text-indigo-400 mb-1">
+                            <span>{result.title}</span>
+                            <span className="bg-indigo-950 text-indigo-300 px-1.5 py-0.5 rounded text-[9px] uppercase">{result.type}</span>
+                          </div>
+                          <pre className="text-[10px] font-mono text-gray-300 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                            {result.content.substring(0, 300)}...
+                          </pre>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-950/40 border border-gray-800/40 p-4 rounded-xl text-center text-xs text-gray-500">
+                      RAG knowledge base matches will display here once Memory Agent finishes.
                     </div>
                   )}
                 </div>
