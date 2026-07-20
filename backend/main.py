@@ -35,6 +35,15 @@ class FeatureItem(BaseModel):
 class BalloonRequest(BaseModel):
     features: List[dict]
 
+class SearchRequest(BaseModel):
+    query: str
+    limit: Optional[int] = 3
+
+class ProcessPlanRequest(BaseModel):
+    category: str
+    material: str
+    features: List[dict]
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the C2P AI Copilot Backend Service"}
@@ -108,13 +117,7 @@ async def upload_drawing(file: UploadFile = File(...)):
 # Endpoint for generating balloons and assigning coordinates
 @app.post("/balloon")
 def generate_balloons(request: BalloonRequest):
-    """
-    Simulates the Ballooning Generation Agent.
-    Accepts extracted features, maps them to balloon numbers, and assigns spatial overlay coordinates.
-    """
     ballooned_features = []
-    
-    # Feature coordinate mapping presets to make it look realistic
     preset_coords = {
         "through hole": {"x": 40, "y": 35},
         "center pocket": {"x": 50, "y": 50},
@@ -146,19 +149,127 @@ def generate_balloons(request: BalloonRequest):
         "balloons": ballooned_features
     }
 
-class SearchRequest(BaseModel):
-    query: str
-    limit: Optional[int] = 3
-
 @app.post("/search")
 def search_knowledge_base(request: SearchRequest):
-    """
-    Search endpoint representing the Memory Agent (RAG).
-    Queries Qdrant / Local indexed files for standards, tools, and material specs.
-    """
     results = rag_engine.search(request.query, limit=request.limit)
     return {
         "status": "Success",
         "query": request.query,
         "results": results
+    }
+
+# Endpoint for generating the process plan
+@app.post("/process-plan")
+def generate_process_plan(request: ProcessPlanRequest):
+    """
+    Process Planning Agent endpoint.
+    Sequences operations (Facing -> Milling -> Drilling -> Chamfer -> Inspection)
+    and recommends machine tools, speeds, and feeds.
+    """
+    # Load materials and tools metadata to make recommendations realistic
+    material_lower = request.material.lower()
+    sfm = 400  # Default SFM
+    feed_rate_coef = 0.003
+    
+    if "aluminium" in material_lower:
+        sfm = 800
+        feed_rate_coef = 0.005
+    elif "steel" in material_lower:
+        sfm = 350
+        feed_rate_coef = 0.003
+    elif "brass" in material_lower:
+        sfm = 1000
+        feed_rate_coef = 0.006
+
+    machine = "3-Axis CNC Vertical Mill"
+    if request.category.lower() == "shaft":
+        machine = "CNC Lathe with Live Tooling"
+        
+    workflow_steps = []
+    step_num = 1
+    
+    # 1. Start with Facing operation
+    facing_rpm = int((sfm * 3.82) / 2.0)  # Face mill diameter is 2-inch
+    facing_feed = int(facing_rpm * feed_rate_coef * 4)  # 4 flutes
+    workflow_steps.append({
+        "step_number": step_num,
+        "operation": "Facing",
+        "description": "Face milling top surface to clean skin stock and establish datum surface.",
+        "machine": machine,
+        "tool": "2.0-inch indexable Face Mill",
+        "speed_rpm": facing_rpm,
+        "feed_rate_ipm": facing_feed,
+        "estimated_time_mins": 2.5
+    })
+    step_num += 1
+    
+    # 2. Sequence features
+    for feat in request.features:
+        name = feat.get("name", "")
+        details = feat.get("details", "")
+        
+        # Determine operation type and recommended tool size
+        op_name = "Milling"
+        tool = "0.5-inch 4-Flute Carbide Endmill"
+        tool_dia = 0.5
+        flutes = 4
+        op_desc = f"Milling feature {name} ({details})."
+        est_time = 4.0
+        
+        if "hole" in name.lower() or "drill" in name.lower() or "bore" in name.lower():
+            op_name = "Drilling"
+            tool = "0.25-inch TiN Coated HSS Jobber Drill"
+            tool_dia = 0.25
+            flutes = 2
+            op_desc = f"Peck drilling through-holes specified: {details}."
+            est_time = 1.5
+        elif "slot" in name.lower() or "pocket" in name.lower():
+            op_name = "Pocket Milling"
+            tool = "3/8-inch 3-Flute Carbide Endmill"
+            tool_dia = 0.375
+            flutes = 3
+            op_desc = f"Adaptive clearing pocket profile: {details}."
+            est_time = 5.5
+        elif "chamfer" in name.lower():
+            op_name = "Chamfering"
+            tool = "0.25-inch 45-degree Chamfer Mill"
+            tool_dia = 0.25
+            flutes = 2
+            op_desc = f"Edge deburring and breaking corners to drawing spec: {details}."
+            est_time = 1.0
+            
+        rpm = int((sfm * 3.82) / tool_dia)
+        feed = int(rpm * feed_rate_coef * flutes)
+        
+        workflow_steps.append({
+            "step_number": step_num,
+            "operation": op_name,
+            "description": op_desc,
+            "machine": machine,
+            "tool": tool,
+            "speed_rpm": rpm,
+            "feed_rate_ipm": feed,
+            "estimated_time_mins": est_time
+        })
+        step_num += 1
+        
+    # 3. Add Inspection operation at the end
+    workflow_steps.append({
+        "step_number": step_num,
+        "operation": "Inspection",
+        "description": "Dimensional check of critical tolerances and surface finish profile verification.",
+        "machine": "Quality Assurance Station",
+        "tool": "Digital Calipers, Depth Micrometers & Profilometer",
+        "speed_rpm": 0,
+        "feed_rate_ipm": 0,
+        "estimated_time_mins": 3.0
+    })
+    
+    total_time = sum(step["estimated_time_mins"] for step in workflow_steps)
+    
+    return {
+        "status": "Success",
+        "machine_type": machine,
+        "total_estimated_time_mins": total_time,
+        "process_plan": workflow_steps
     }

@@ -44,6 +44,7 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState<number>(-1);
   const [balloons, setBalloons] = useState<any[]>([]);
   const [ragResults, setRagResults] = useState<any[]>([]);
+  const [processPlan, setProcessPlan] = useState<any>(null);
 
   // Agent sequence
   const [agents, setAgents] = useState<AgentProgress[]>([
@@ -225,6 +226,41 @@ export default function App() {
       addLog('Error querying Memory Agent RAG database.');
     }
     setCurrentStep(4);
+
+    // Step 5: Process Planning Agent
+    setAgents(prev => {
+      const copy = [...prev];
+      copy[4].status = 'running';
+      copy[4].message = 'Sequencing operations and calculating machining feedrates...';
+      return copy;
+    });
+    addLog('Process Planning Agent triggered: Structuring machining sequence...');
+    await new Promise(r => setTimeout(r, 1200));
+
+    try {
+      const res = await fetch('http://localhost:8000/process-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: drawing.category,
+          material: drawing.material,
+          features: drawing.features
+        })
+      });
+      const data = await res.json();
+      setProcessPlan(data);
+      
+      setAgents(prev => {
+        const copy = [...prev];
+        copy[4].status = 'success';
+        copy[4].message = 'Completed process plan routing sheet.';
+        return copy;
+      });
+      addLog(`Process Planning complete. Machine recommended: ${data.machine_type}`);
+    } catch (err) {
+      addLog('Error calling Process Planning Agent.');
+    }
+    setCurrentStep(5);
   };
 
   return (
@@ -409,6 +445,49 @@ export default function App() {
                   ) : (
                     <div className="bg-gray-950/40 border border-gray-800/40 p-4 rounded-xl text-center text-xs text-gray-500">
                       RAG knowledge base matches will display here once Memory Agent finishes.
+                    </div>
+                  )}
+                </div>
+
+                {/* Process Plan Timeline Panel */}
+                <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4 border-b border-gray-800/80 pb-3">
+                    <span className="font-semibold text-sm flex items-center space-x-2">
+                      <FileText className="w-4 h-4 text-indigo-400" />
+                      <span>Recommended Manufacturing Process Plan</span>
+                    </span>
+                    {processPlan && (
+                      <span className="bg-indigo-950 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded text-xs font-bold font-mono">
+                        TIME: {processPlan.total_estimated_time_mins} mins
+                      </span>
+                    )}
+                  </div>
+                  {processPlan ? (
+                    <div className="space-y-6 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-800">
+                      {processPlan.process_plan.map((step: any) => (
+                        <div key={step.step_number} className="relative pl-8 text-xs">
+                          <div className="absolute left-[5px] top-1 bg-indigo-500 border-4 border-gray-950 rounded-full w-2.5 h-2.5 flex items-center justify-center text-white" />
+                          <div className="flex justify-between font-bold text-gray-200">
+                            <span>Step {step.step_number}: {step.operation}</span>
+                            <span className="text-gray-500 font-normal">{step.estimated_time_mins}m</span>
+                          </div>
+                          <p className="text-gray-400 mt-1">{step.description}</p>
+                          <div className="grid grid-cols-2 gap-2 mt-2 bg-gray-950/40 p-2 rounded-lg border border-gray-900/60 font-mono text-[10px] text-indigo-300">
+                            <div><strong className="text-gray-500">Tool:</strong> {step.tool}</div>
+                            <div><strong className="text-gray-500">Machine:</strong> {step.machine}</div>
+                            {step.speed_rpm > 0 && (
+                              <>
+                                <div><strong className="text-gray-500">Spindle:</strong> {step.speed_rpm} RPM</div>
+                                <div><strong className="text-gray-500">Feedrate:</strong> {step.feed_rate_ipm} IPM</div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-950/40 border border-gray-800/40 p-4 rounded-xl text-center text-xs text-gray-500">
+                      Machining process timeline routing sheet will render here.
                     </div>
                   )}
                 </div>
