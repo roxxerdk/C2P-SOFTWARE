@@ -1,0 +1,19 @@
+{
+  "tool_type": "Chuck Reamer",
+  "configurations": [
+    {
+      "diameter_inch": 0.25,
+      "tolerance": "+0.0001 / -0.0000",
+      "pre_drill_diameter_inch": 0.242,
+      "material": "HSS",
+      "flute_type": "Straight Flute"
+    },
+    {
+      "diameter_inch": 0.5,
+      "tolerance": "+0.0002 / -0.0000",
+      "pre_drill_diameter_inch": 0.484,
+      "material": "Solid Carbide",
+      "flute_type": "Spiral Flute"
+    }
+  ]
+}

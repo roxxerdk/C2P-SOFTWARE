@@ -1,0 +1,19 @@
+{
+  "process_type": "Milling",
+  "steps": [
+    {
+      "step_id": 1,
+      "name": "Rough Adaptive / Pocketing",
+      "purpose": "Bulk material removal with high axial depth and low radial engagement.",
+      "tool_recommended": "Roughing End Mill (Carbide)",
+      "parameter_rules": "Optimal stepover: 10-15% of tool diameter; Max RPM."
+    },
+    {
+      "step_id": 2,
+      "name": "Finish Contour / Wall Clean",
+      "purpose": "Create final surface finish on pockets and side walls.",
+      "tool_recommended": "Finishing End Mill (4+ Flute)",
+      "parameter_rules": "Radial stock allowance: 0.010 - 0.015 inches; High SFM; low feed per tooth."
+    }
+  ]
+}

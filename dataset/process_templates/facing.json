@@ -1,0 +1,19 @@
+{
+  "process_type": "Facing",
+  "steps": [
+    {
+      "step_id": 1,
+      "name": "Rough Facing",
+      "purpose": "Level stock top surface and remove raw scale.",
+      "tool_recommended": "Face Mill 2-inch or 3-inch",
+      "parameter_rules": "Stepover: 65% of cutter diameter; Depth of cut: 0.050 inch."
+    },
+    {
+      "step_id": 2,
+      "name": "Finish Facing",
+      "purpose": "Final pass to achieve precise thickness and surface roughness.",
+      "tool_recommended": "Face Mill / Fly Cutter",
+      "parameter_rules": "Depth of cut: 0.010 - 0.015 inch; High feed and high speed."
+    }
+  ]
+}

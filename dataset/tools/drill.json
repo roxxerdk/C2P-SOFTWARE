@@ -1,0 +1,21 @@
+{
+  "tool_type": "Twist Drill",
+  "configurations": [
+    {
+      "diameter_inch": 0.25,
+      "point_angle_deg": 118,
+      "material": "HSS (High Speed Steel)",
+      "coating": "TiN",
+      "recommended_operations": ["Standard Drilling"],
+      "pilot_drill_required": false
+    },
+    {
+      "diameter_inch": 0.5,
+      "point_angle_deg": 135,
+      "material": "Carbide",
+      "coating": "TiAlN",
+      "recommended_operations": ["High Performance Deep Drilling"],
+      "pilot_drill_required": true
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "material_name": "Aluminium",
+  "default_grade": "6061-T6",
+  "properties": {
+    "density": "2.7 g/cm3",
+    "yield_strength": "276 MPa",
+    "hardness": "95 Brinell",
+    "machinability_rating": "70%"
+  },
+  "machining_parameters": {
+    "cutting_speed_sfm": {
+      "carbide_endmill_rough": 800,
+      "carbide_endmill_finish": 1200,
+      "hss_drill": 250,
+      "carbide_drill": 400
+    },
+    "feed_per_tooth_inch": {
+      "rough_milling": 0.005,
+      "finish_milling": 0.002,
+      "drilling": 0.004
+    }
+  },
+  "grades_available": [
+    {
+      "grade": "6061-T6",
+      "description": "General purpose structural aluminium, high corrosion resistance, excellent weldability."
+    },
+    {
+      "grade": "7075-T6",
+      "description": "High strength aircraft grade, excellent stress corrosion resistance."
+    }
+  ]
+}

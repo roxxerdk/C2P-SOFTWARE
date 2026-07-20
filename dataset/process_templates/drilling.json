@@ -1,0 +1,26 @@
+{
+  "process_type": "Drilling",
+  "steps": [
+    {
+      "step_id": 1,
+      "name": "Spot/Center Drilling",
+      "purpose": "Locate center position and create entry chamfer to prevent drill walk.",
+      "tool_recommended": "Spot Drill 90 deg / 120 deg",
+      "parameter_rules": "Cutting Speed is 50% of twist drill; Feed per revolution is 0.002 inch."
+    },
+    {
+      "step_id": 2,
+      "name": "Twist Drilling",
+      "purpose": "Drill through or blind hole to major pre-sizing diameter.",
+      "tool_recommended": "Jobber Length Twist Drill",
+      "parameter_rules": "Cutting Speed matches material SFM; Feed matches drill diameter."
+    },
+    {
+      "step_id": 3,
+      "name": "Countersink / Deburr",
+      "purpose": "Deburr hole entrance and apply chamfer.",
+      "tool_recommended": "Countersink Tool",
+      "parameter_rules": "Low RPM (approx 100-300 RPM); Feed manually controlled or 0.001 ipr."
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "tool_type": "End Mill",
+  "configurations": [
+    {
+      "diameter_inch": 0.5,
+      "flute_count": 4,
+      "material": "Solid Carbide",
+      "coating": "AlTiN",
+      "recommended_operations": ["Rough Pocketing", "Profiling", "Facing"],
+      "max_depth_of_cut_inch": 0.75
+    },
+    {
+      "diameter_inch": 0.25,
+      "flute_count": 3,
+      "material": "Solid Carbide",
+      "coating": "Uncoated (Bright)",
+      "recommended_operations": ["Aluminium Slotting", "Finish Pocketing"],
+      "max_depth_of_cut_inch": 0.375
+    }
+  ]
+}
