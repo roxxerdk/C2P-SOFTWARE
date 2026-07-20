@@ -9,7 +9,8 @@ import {
   Clock,
   Database,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Download
 } from 'lucide-react';
 
 interface Feature {
@@ -113,6 +114,37 @@ export default function App() {
       addLog('Error uploading drawing to backend API.');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const downloadReportPackage = async () => {
+    if (!selectedDrawing || !processPlan) return;
+    addLog('Initiating manufacturing report download...');
+    try {
+      const res = await fetch('http://localhost:8000/download-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          drawing_name: selectedDrawing.name,
+          category: selectedDrawing.category,
+          material: selectedDrawing.material,
+          dimensions: selectedDrawing.dimensions,
+          process_plan: processPlan.process_plan,
+          warnings: validationWarnings,
+          optimizations: reflectionOptimizations
+        })
+      });
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `manufacturing_report_${selectedDrawing.name.toLowerCase().replace(/ /g, '_')}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      addLog('Report download completed successfully.');
+    } catch (err) {
+      addLog('Failed to download manufacturing report.');
     }
   };
 
@@ -320,10 +352,27 @@ export default function App() {
       });
       addLog(`Reflection loop complete: Applied ${valData.reflection_optimizations.length} corrections.`);
 
+      // Step 8: Documentation Agent
+      setAgents(prev => {
+        const copy = [...prev];
+        copy[7].status = 'running';
+        copy[7].message = 'Compiling reports and formatting download sheets...';
+        return copy;
+      });
+      addLog('Documentation Agent triggered: Generating printable HTML package sheets...');
+      await new Promise(r => setTimeout(r, 1000));
+      setAgents(prev => {
+        const copy = [...prev];
+        copy[7].status = 'success';
+        copy[7].message = 'Final Manufacturing Package compiled. Ready to download.';
+        return copy;
+      });
+      addLog('Documentation complete. Manufacturing report ready.');
+      setCurrentStep(7);
+
     } catch (err) {
       addLog('Error in process execution pipeline.');
     }
-    setCurrentStep(6);
   };
 
   return (
@@ -375,6 +424,15 @@ export default function App() {
                 <p className="text-gray-400 text-sm mt-1">Upload a drawing to start the Lyzr orchestration workflow & Google ADK agents execution.</p>
               </div>
               <div className="flex items-center space-x-3">
+                {processPlan && (
+                  <button 
+                    onClick={downloadReportPackage}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 shadow-lg transition-all"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download Report Package</span>
+                  </button>
+                )}
                 <label className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer flex items-center space-x-2 shadow-lg transition-all">
                   <Upload className="w-4 h-4" />
                   <span>{uploading ? 'Analyzing...' : 'Upload Drawing'}</span>
