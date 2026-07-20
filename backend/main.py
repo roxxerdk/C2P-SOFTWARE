@@ -101,7 +101,7 @@ async def upload_drawing(file: UploadFile = File(...)):
     # 1. If GEMINI_API_KEY is configured, run actual vision understanding
     if api_key:
         try:
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            model = genai.GenerativeModel("gemini-3.5-flash")
             
             prompt = """
             You are a expert mechanical engineering drawing parser.
@@ -150,7 +150,9 @@ async def upload_drawing(file: UploadFile = File(...)):
             }
         except Exception as e:
             # If API fails (e.g., bad key or unsupported image format), fall back to template lookup
-            pass
+            print("GEMINI API ERROR:", str(e))
+            import traceback
+            traceback.print_exc()
 
     # 2. Fallback to catalog drawing template matches
     catalog = load_catalog()
