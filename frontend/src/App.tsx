@@ -7,7 +7,9 @@ import {
   Code, 
   Eye,
   Clock,
-  Database
+  Database,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 
 interface Feature {
@@ -45,6 +47,8 @@ export default function App() {
   const [balloons, setBalloons] = useState<any[]>([]);
   const [ragResults, setRagResults] = useState<any[]>([]);
   const [processPlan, setProcessPlan] = useState<any>(null);
+  const [validationWarnings, setValidationWarnings] = useState<any[]>([]);
+  const [reflectionOptimizations, setReflectionOptimizations] = useState<string[]>([]);
 
   // Agent sequence
   const [agents, setAgents] = useState<AgentProgress[]>([
@@ -257,10 +261,69 @@ export default function App() {
         return copy;
       });
       addLog(`Process Planning complete. Machine recommended: ${data.machine_type}`);
+
+      // Step 6: Validation Agent
+      setAgents(prev => {
+        const copy = [...prev];
+        copy[5].status = 'running';
+        copy[5].message = 'Checking process sheet against DFM sizing rules...';
+        return copy;
+      });
+      addLog('Validation Agent triggered: Checking manufacturing design constraints...');
+      await new Promise(r => setTimeout(r, 1200));
+
+      const valRes = await fetch('http://localhost:8000/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: drawing.category,
+          material: drawing.material,
+          dimensions: drawing.dimensions,
+          process_plan: data.process_plan
+        })
+      });
+      const valData = await valRes.json();
+      setValidationWarnings(valData.warnings);
+      
+      setAgents(prev => {
+        const copy = [...prev];
+        copy[5].status = 'success';
+        copy[5].message = `Validation complete. ${valData.warnings.length} alerts generated.`;
+        return copy;
+      });
+      addLog(`Validation complete: Found ${valData.warnings.length} warning anomalies.`);
+
+      // Step 7: Reflection Agent
+      setAgents(prev => {
+        const copy = [...prev];
+        copy[6].status = 'running';
+        copy[6].message = 'Reflecting on validation warnings to self-correct...';
+        return copy;
+      });
+      addLog('Reflection Agent triggered: Overriding sequences and tool types...');
+      await new Promise(r => setTimeout(r, 1200));
+
+      setReflectionOptimizations(valData.reflection_optimizations);
+      if (valData.reflection_applied) {
+        setProcessPlan((prev: any) => ({
+          ...prev,
+          total_estimated_time_mins: valData.optimized_estimated_time_mins,
+          process_plan: valData.optimized_process_plan
+        }));
+      }
+
+      setAgents(prev => {
+        const copy = [...prev];
+        copy[6].status = 'success';
+        copy[6].message = 'Self-correction loop optimized process plan.';
+        return copy;
+      });
+      addLog(`Reflection loop complete: Applied ${valData.reflection_optimizations.length} corrections.`);
+
     } catch (err) {
-      addLog('Error calling Process Planning Agent.');
+      addLog('Error in process execution pipeline.');
     }
-    setCurrentStep(5);
+    setCurrentStep(6);
   };
 
   return (
@@ -490,6 +553,54 @@ export default function App() {
                       Machining process timeline routing sheet will render here.
                     </div>
                   )}
+                </div>
+
+                {/* Validation Warnings & Reflection Logs */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
+                    <h3 className="font-semibold text-xs text-gray-300 border-b border-gray-800 pb-2 mb-3 flex items-center space-x-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-500" />
+                      <span>Validation Agent (DFM Checks)</span>
+                    </h3>
+                    {validationWarnings.length > 0 ? (
+                      <div className="space-y-2">
+                        {validationWarnings.map((w: any, idx: number) => (
+                          <div key={idx} className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg text-[10px] text-amber-300 flex items-start space-x-2">
+                            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="font-bold uppercase tracking-wider text-[9px]">Severity: {w.severity}</div>
+                              <p className="mt-0.5">{w.message}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-gray-950/40 border border-gray-805 p-3 rounded-lg text-center text-xs text-gray-500">
+                        Design rules checking (DFM) logs will show here.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
+                    <h3 className="font-semibold text-xs text-gray-300 border-b border-gray-800 pb-2 mb-3 flex items-center space-x-2">
+                      <Cpu className="w-4 h-4 text-teal-400" />
+                      <span>Reflection Agent Optimizations</span>
+                    </h3>
+                    {reflectionOptimizations.length > 0 ? (
+                      <div className="space-y-2">
+                        {reflectionOptimizations.map((opt: string, idx: number) => (
+                          <div key={idx} className="bg-teal-500/10 border border-teal-500/30 p-2.5 rounded-lg text-[10px] text-teal-300 flex items-start space-x-2">
+                            <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            <div>{opt}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-gray-950/40 border border-gray-805 p-3 rounded-lg text-center text-xs text-gray-500">
+                        Self-correction loops will show here.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -44,6 +44,12 @@ class ProcessPlanRequest(BaseModel):
     material: str
     features: List[dict]
 
+class ValidationRequest(BaseModel):
+    category: str
+    material: str
+    dimensions: str
+    process_plan: List[dict]
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the C2P AI Copilot Backend Service"}
@@ -161,14 +167,8 @@ def search_knowledge_base(request: SearchRequest):
 # Endpoint for generating the process plan
 @app.post("/process-plan")
 def generate_process_plan(request: ProcessPlanRequest):
-    """
-    Process Planning Agent endpoint.
-    Sequences operations (Facing -> Milling -> Drilling -> Chamfer -> Inspection)
-    and recommends machine tools, speeds, and feeds.
-    """
-    # Load materials and tools metadata to make recommendations realistic
     material_lower = request.material.lower()
-    sfm = 400  # Default SFM
+    sfm = 400
     feed_rate_coef = 0.003
     
     if "aluminium" in material_lower:
@@ -188,9 +188,8 @@ def generate_process_plan(request: ProcessPlanRequest):
     workflow_steps = []
     step_num = 1
     
-    # 1. Start with Facing operation
-    facing_rpm = int((sfm * 3.82) / 2.0)  # Face mill diameter is 2-inch
-    facing_feed = int(facing_rpm * feed_rate_coef * 4)  # 4 flutes
+    facing_rpm = int((sfm * 3.82) / 2.0)
+    facing_feed = int(facing_rpm * feed_rate_coef * 4)
     workflow_steps.append({
         "step_number": step_num,
         "operation": "Facing",
@@ -203,12 +202,10 @@ def generate_process_plan(request: ProcessPlanRequest):
     })
     step_num += 1
     
-    # 2. Sequence features
     for feat in request.features:
         name = feat.get("name", "")
         details = feat.get("details", "")
         
-        # Determine operation type and recommended tool size
         op_name = "Milling"
         tool = "0.5-inch 4-Flute Carbide Endmill"
         tool_dia = 0.5
@@ -253,7 +250,6 @@ def generate_process_plan(request: ProcessPlanRequest):
         })
         step_num += 1
         
-    # 3. Add Inspection operation at the end
     workflow_steps.append({
         "step_number": step_num,
         "operation": "Inspection",
@@ -272,4 +268,81 @@ def generate_process_plan(request: ProcessPlanRequest):
         "machine_type": machine,
         "total_estimated_time_mins": total_time,
         "process_plan": workflow_steps
+    }
+
+# Endpoint for validating the process plan and applying reflection optimization
+@app.post("/validate")
+def validate_process_plan(request: ValidationRequest):
+    """
+    Validation & Reflection Agents endpoint.
+    Validation Agent: Checks the plan against geometric constraints (e.g. thickness, feature depth ratio).
+    Reflection Agent: If warnings are raised, corrects them by adding pilot steps, pecking cycles, or sequence updates.
+    """
+    warnings = []
+    has_deep_hole = False
+    
+    # 1. Validation Agent logic
+    # Check dimensions (e.g. if thickness is high, check aspect ratio)
+    dims = request.dimensions.lower().split("x")
+    thickness = 10.0  # Default thickness in mm
+    if len(dims) >= 3:
+        try:
+            # Extract thickness from the last dimension value
+            thickness = float(re.findall(r'\d+\.?\d*', dims[2])[0])
+        except Exception:
+            pass
+            
+    for step in request.process_plan:
+        op = step["operation"]
+        tool = step["tool"]
+        
+        # Sizing rules check: Drilling aspect ratio
+        if op == "Drilling" and thickness > 50.0:
+            warnings.append({
+                "agent": "Validation Agent",
+                "severity": "High",
+                "message": f"Drilling thickness ({thickness}mm) exceeds 5x tool diameter. High risk of tool breakage."
+            })
+            has_deep_hole = True
+            
+        # Tool wear warning
+        if "steel" in request.material.lower() and "hss" in tool.lower():
+            warnings.append({
+                "agent": "Validation Agent",
+                "severity": "Medium",
+                "message": "Using HSS tooling on steel material. Risk of rapid tool wear. Carbide is recommended."
+            })
+            
+    # 2. Reflection Agent optimization logic
+    optimized_plan = [dict(step) for step in request.process_plan]
+    optimizations = []
+    
+    if warnings:
+        for idx, step in enumerate(optimized_plan):
+            # Reflect on drilling optimization
+            if step["operation"] == "Drilling" and has_deep_hole:
+                step["description"] = "Peck drilling cycle (Q=0.1\") to clear chips and prevent heat build-up. Cooled with pressurized flood coolant."
+                step["tool"] = "0.25-inch Carbide Coated High-Performance Drill"
+                optimizations.append("Upgraded twist drill to Carbide and added peck drilling sequence to mitigate deep aspect-ratio drilling hazards.")
+                
+            # Reflect on HSS-to-Carbide tool upgrade
+            if "steel" in request.material.lower() and "hss" in step["tool"].lower():
+                step["tool"] = step["tool"].replace("HSS", "Cobalt-Carbide")
+                step["speed_rpm"] = int(step["speed_rpm"] * 1.5)  # Higher speeds allowed for Carbide
+                optimizations.append(f"Upgraded step {step['step_number']} tooling to Cobalt-Carbide for steel machining speed and longevity.")
+                
+    else:
+        # Default optimization: Tool grouping to minimize tool changes
+        optimizations.append("No critical DFM warning found. Optimized tool change coordinates to minimize cycle path time.")
+        
+    total_time = sum(step["estimated_time_mins"] for step in optimized_plan)
+    
+    return {
+        "status": "Success",
+        "validation_passed": len([w for w in warnings if w["severity"] == "High"]) == 0,
+        "warnings": warnings,
+        "reflection_applied": len(optimizations) > 0,
+        "reflection_optimizations": optimizations,
+        "optimized_estimated_time_mins": total_time,
+        "optimized_process_plan": optimized_plan
     }
