@@ -41,13 +41,15 @@ export default function App() {
   const [ocrLayer, setOcrLayer] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [currentStep, setCurrentStep] = useState<number>(-1);
+  const [balloons, setBalloons] = useState<any[]>([]);
 
   // Agent sequence
   const [agents, setAgents] = useState<AgentProgress[]>([
     { name: 'Planning Agent', status: 'idle', message: 'Waiting for drawing upload...' },
     { name: 'Drawing Understanding Agent', status: 'idle', message: 'Waiting for image upload...' },
-    { name: 'Memory Agent', status: 'idle', message: 'Waiting for feature coordinates...' },
-    { name: 'Process Planning Agent', status: 'idle', message: 'Waiting for engineering JSON...' },
+    { name: 'Ballooning Agent', status: 'idle', message: 'Waiting for feature coordinates...' },
+    { name: 'Memory Agent', status: 'idle', message: 'Waiting for engineering JSON...' },
+    { name: 'Process Planning Agent', status: 'idle', message: 'Waiting for RAG retrieval...' },
     { name: 'Validation Agent', status: 'idle', message: 'Waiting for process sequence...' },
     { name: 'Reflection Agent', status: 'idle', message: 'Waiting for validation results...' },
     { name: 'Documentation Agent', status: 'idle', message: 'Waiting for final process plan...' }
@@ -159,8 +161,36 @@ export default function App() {
     addLog('Drawing Understanding complete. Features and title blocks extracted.');
     setCurrentStep(2);
 
-    // Auto trigger balloon layer highlight
-    setBalloonLayer(true);
+    // Step 3: Ballooning Agent
+    setAgents(prev => {
+      const copy = [...prev];
+      copy[2].status = 'running';
+      copy[2].message = 'Generating visual balloon annotations overlay...';
+      return copy;
+    });
+    addLog('Ballooning Agent triggered: Querying feature positions...');
+    await new Promise(r => setTimeout(r, 1200));
+
+    try {
+      const res = await fetch('http://localhost:8000/balloon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ features: drawing.features })
+      });
+      const data = await res.json();
+      setBalloons(data.balloons);
+      setBalloonLayer(true);
+      setAgents(prev => {
+        const copy = [...prev];
+        copy[2].status = 'success';
+        copy[2].message = `Created ${data.balloons.length} visual balloons.`;
+        return copy;
+      });
+      addLog(`Ballooning Agent complete: Generated ${data.balloons.length} visual balloons.`);
+    } catch (err) {
+      addLog('Error calling Ballooning Agent.');
+    }
+    setCurrentStep(3);
   };
 
   return (
@@ -281,14 +311,14 @@ export default function App() {
                             <div>[OCR: DIM={selectedDrawing.dimensions}]</div>
                           </div>
                         )}
-                        {balloonLayer && selectedDrawing.features.map((f, i) => (
+                        {balloonLayer && balloons.map((b: any) => (
                           <div 
-                            key={f.id}
-                            style={{ top: `${30 + i * 20}%`, left: `${40 + i * 10}%` }}
-                            className="absolute bg-teal-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-lg animate-bounce"
-                            title={f.details}
+                            key={b.feature_id}
+                            style={{ top: `${b.coordinates.y}%`, left: `${b.coordinates.x}%` }}
+                            className="absolute bg-teal-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer transform -translate-x-1/2 -translate-y-1/2 hover:scale-125 transition-transform"
+                            title={`${b.feature_name}: ${b.details}`}
                           >
-                            {f.balloon}
+                            {b.balloon_number}
                           </div>
                         ))}
                       </div>

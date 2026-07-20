@@ -25,6 +25,15 @@ def load_catalog():
             return json.load(f)
     return []
 
+class FeatureItem(BaseModel):
+    id: str
+    name: str
+    details: str
+    balloon: int
+
+class BalloonRequest(BaseModel):
+    features: List[dict]
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the C2P AI Copilot Backend Service"}
@@ -41,29 +50,17 @@ def get_drawings():
 # Endpoint for uploading drawing image and processing it
 @app.post("/upload")
 async def upload_drawing(file: UploadFile = File(...)):
-    """
-    Accepts drawing image files, performs simulated preprocessing,
-    and runs the Planning & Drawing Understanding Agents to output structured JSON.
-    """
-    # 1. Simulate Image Preprocessing
-    # We read file parameters
     filename = file.filename
-    content_type = file.content_type
-    
-    # 2. Check if the file matches one of our catalog drawings by name
     catalog = load_catalog()
     matched_drawing = None
     
-    # Clean the filename for matching
     clean_name = filename.lower().split(".")[0].replace("_", " ").replace("-", " ")
     for drawing in catalog:
         if drawing["name"].lower() in clean_name or drawing["id"].lower() in clean_name:
             matched_drawing = drawing
             break
             
-    # 3. If no direct catalog match, generate a dynamic mock structure based on name/category guess
     if not matched_drawing:
-        # Default fallback drawing structure
         category = "Plate"
         if "shaft" in clean_name:
             category = "Shaft"
@@ -87,7 +84,6 @@ async def upload_drawing(file: UploadFile = File(...)):
             ]
         }
         
-    # Return structured metadata simulating Planning Agent and Drawing Understanding output
     return {
         "preprocessing_status": "Success",
         "preprocessing_logs": [
@@ -106,4 +102,45 @@ async def upload_drawing(file: UploadFile = File(...)):
             "dimensions": matched_drawing["dimensions"],
             "extracted_features": matched_drawing["features"]
         }
+    }
+
+# Endpoint for generating balloons and assigning coordinates
+@app.post("/balloon")
+def generate_balloons(request: BalloonRequest):
+    """
+    Simulates the Ballooning Generation Agent.
+    Accepts extracted features, maps them to balloon numbers, and assigns spatial overlay coordinates.
+    """
+    ballooned_features = []
+    
+    # Feature coordinate mapping presets to make it look realistic
+    preset_coords = {
+        "through hole": {"x": 40, "y": 35},
+        "center pocket": {"x": 50, "y": 50},
+        "pocket": {"x": 50, "y": 50},
+        "corner chamfers": {"x": 15, "y": 15},
+        "chamfer": {"x": 15, "y": 15},
+        "center bore": {"x": 50, "y": 50},
+        "mounting holes": {"x": 80, "y": 80},
+        "bearing seat 1": {"x": 30, "y": 45},
+        "spline section": {"x": 60, "y": 45},
+        "threaded end": {"x": 90, "y": 45}
+    }
+    
+    for idx, feat in enumerate(request.features):
+        name = feat.get("name", "").lower()
+        coords = preset_coords.get(name, {"x": 30 + (idx * 15), "y": 30 + (idx * 10)})
+        
+        ballooned_features.append({
+            "balloon_number": idx + 1,
+            "feature_id": feat.get("id", f"feat_{idx+1}"),
+            "feature_name": feat.get("name", "Unknown Feature"),
+            "details": feat.get("details", ""),
+            "coordinates": coords
+        })
+        
+    return {
+        "status": "Success",
+        "agent_message": f"Successfully mapped and generated {len(ballooned_features)} feature balloons.",
+        "balloons": ballooned_features
     }
