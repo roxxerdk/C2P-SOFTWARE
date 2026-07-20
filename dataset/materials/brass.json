@@ -1,0 +1,29 @@
+{
+  "material_name": "Brass",
+  "default_grade": "C360 Free-Cutting Brass",
+  "properties": {
+    "density": "8.5 g/cm3",
+    "yield_strength": "310 MPa",
+    "hardness": "75 Brinell",
+    "machinability_rating": "100%"
+  },
+  "machining_parameters": {
+    "cutting_speed_sfm": {
+      "carbide_endmill_rough": 1000,
+      "carbide_endmill_finish": 1500,
+      "hss_drill": 300,
+      "carbide_drill": 500
+    },
+    "feed_per_tooth_inch": {
+      "rough_milling": 0.006,
+      "finish_milling": 0.0025,
+      "drilling": 0.005
+    }
+  },
+  "grades_available": [
+    {
+      "grade": "C360",
+      "description": "Standard free-cutting brass, highly machinable, used for gears, fittings, and screws."
+    }
+  ]
+}

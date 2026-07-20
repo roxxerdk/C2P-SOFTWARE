@@ -1,0 +1,19 @@
+{
+  "process_type": "Quality Inspection",
+  "steps": [
+    {
+      "step_id": 1,
+      "name": "Dimensional Verification",
+      "purpose": "Verify feature sizes and overall bounding box sizes against nominal limits.",
+      "tools_used": ["Calipers", "Micrometers", "CMM"],
+      "allowable_deviation": "+/-0.005\" general, +/-0.0005\" for reamed holes"
+    },
+    {
+      "step_id": 2,
+      "name": "Surface Finish Inspection",
+      "purpose": "Check surface roughness on milled/faced features.",
+      "tools_used": ["Roughness Comparator", "Profilometer"],
+      "allowable_deviation": "32 Ra max for faced, 125 Ra general milled"
+    }
+  ]
+}

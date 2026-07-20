@@ -1,0 +1,21 @@
+{
+  "tool_type": "Thread Tap",
+  "configurations": [
+    {
+      "thread_size": "1/4-20 UNC",
+      "tap_drill_diameter_inch": 0.201,
+      "tap_drill_number": "N7",
+      "type": "Spiral Point (Gun Tap)",
+      "material": "HSS-E (Cobalt)",
+      "coating": "Steam Oxide"
+    },
+    {
+      "thread_size": "M6x1.0",
+      "tap_drill_diameter_inch": 0.197,
+      "tap_drill_metric": "5.0mm",
+      "type": "Spiral Flute (Blind Hole)",
+      "material": "HSS",
+      "coating": "TiN"
+    }
+  ]
+}
