@@ -1,0 +1,228 @@
+[
+  {
+    "id": "dr_plate_01",
+    "name": "Base Mounting Plate",
+    "category": "Plate",
+    "material": "Aluminium",
+    "dimensions": "150x100x12",
+    "features": [
+      {"id": "feat_1", "name": "Through Hole", "details": "4x Dia 8.5mm Hole", "balloon": 1},
+      {"id": "feat_2", "name": "Center Pocket", "details": "60x40mm, Depth 6mm", "balloon": 2},
+      {"id": "feat_3", "name": "Corner Chamfers", "details": "4x 5mm x 45 deg", "balloon": 3}
+    ]
+  },
+  {
+    "id": "dr_plate_02",
+    "name": "Adapter Plate",
+    "category": "Plate",
+    "material": "Steel",
+    "dimensions": "120x120x8",
+    "features": [
+      {"id": "feat_1", "name": "Through Hole", "details": "4x Dia 6.5mm, 10mm Counterbore", "balloon": 1},
+      {"id": "feat_2", "name": "Center Bore", "details": "Dia 50mm Thru Hole", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_plate_03",
+    "name": "Spacer Plate",
+    "category": "Plate",
+    "material": "Aluminium",
+    "dimensions": "80x80x5",
+    "features": [
+      {"id": "feat_1", "name": "Through Hole", "details": "4x Dia 5.5mm Hole", "balloon": 1},
+      {"id": "feat_2", "name": "Center Cutout", "details": "Dia 40mm circular cutout", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_plate_04",
+    "name": "Heatsink Cover Plate",
+    "category": "Plate",
+    "material": "Aluminium",
+    "dimensions": "200x120x6",
+    "features": [
+      {"id": "feat_1", "name": "Slot Array", "details": "10x Cooling Slots 80x4mm", "balloon": 1},
+      {"id": "feat_2", "name": "Mounting Holes", "details": "6x M4 Tapped Holes", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_bracket_01",
+    "name": "L-Angle Bracket",
+    "category": "Bracket",
+    "material": "Steel",
+    "dimensions": "100x80x40",
+    "features": [
+      {"id": "feat_1", "name": "Bend Angle", "details": "90 deg bent radius 4mm", "balloon": 1},
+      {"id": "feat_2", "name": "Mounting Slots", "details": "2x Slots 20x10mm", "balloon": 2},
+      {"id": "feat_3", "name": "Stiffening Rib", "details": "Pressed triangular rib", "balloon": 3}
+    ]
+  },
+  {
+    "id": "dr_bracket_02",
+    "name": "Support Gusset",
+    "category": "Bracket",
+    "material": "Steel",
+    "dimensions": "120x120x25",
+    "features": [
+      {"id": "feat_1", "name": "Through Hole", "details": "3x Dia 12.0mm holes", "balloon": 1},
+      {"id": "feat_2", "name": "Outer Chamfer", "details": "10mm edge chamfers", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_bracket_03",
+    "name": "Hinge Mount Bracket",
+    "category": "Bracket",
+    "material": "Brass",
+    "dimensions": "60x40x30",
+    "features": [
+      {"id": "feat_1", "name": "Pivot Reamed Hole", "details": "Dia 10.00mm Reamed (+0.0005/-0.000)", "balloon": 1},
+      {"id": "feat_2", "name": "M4 Threaded Holes", "details": "4x M4-0.7 Tapped Holes", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_bracket_04",
+    "name": "Sensor Bracket",
+    "category": "Bracket",
+    "material": "Aluminium",
+    "dimensions": "90x50x30",
+    "features": [
+      {"id": "feat_1", "name": "Face Slot", "details": "1x Center slot 40x12mm", "balloon": 1},
+      {"id": "feat_2", "name": "Countersunk Holes", "details": "2x Dia 5.0mm with 90 deg CSK", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_flange_01",
+    "name": "Pipe Connecting Flange",
+    "category": "Flange",
+    "material": "Steel",
+    "dimensions": "OD150 x ID80 x 15",
+    "features": [
+      {"id": "feat_1", "name": "Bolt Circle Pattern", "details": "6x Dia 12mm Holes on 120mm PCD", "balloon": 1},
+      {"id": "feat_2", "name": "Inner Bore", "details": "Dia 80mm central fluid bore", "balloon": 2},
+      {"id": "feat_3", "name": "O-Ring Groove", "details": "ID 95mm, width 3.2mm, depth 2.1mm", "balloon": 3}
+    ]
+  },
+  {
+    "id": "dr_flange_02",
+    "name": "Blind Flange",
+    "category": "Flange",
+    "material": "Steel",
+    "dimensions": "OD120 x 12",
+    "features": [
+      {"id": "feat_1", "name": "Bolt Circle Pattern", "details": "4x Dia 10mm Holes on 90mm PCD", "balloon": 1},
+      {"id": "feat_2", "name": "Flat Gasket Face", "details": "Surface finish 32 Ra flycut", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_flange_03",
+    "name": "Vacuum KF Flange",
+    "category": "Flange",
+    "material": "Steel",
+    "dimensions": "OD50 x ID25 x 10",
+    "features": [
+      {"id": "feat_1", "name": "Tapered Edge", "details": "15 deg vacuum sealing taper", "balloon": 1},
+      {"id": "feat_2", "name": "Inner Bore", "details": "Dia 25.0mm reamed bore", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_flange_04",
+    "name": "Threaded Flange Adapter",
+    "category": "Flange",
+    "material": "Brass",
+    "dimensions": "OD100 x 20",
+    "features": [
+      {"id": "feat_1", "name": "Bolt Pattern", "details": "4x M6 tapped holes on 80mm PCD", "balloon": 1},
+      {"id": "feat_2", "name": "Threaded Center Bore", "details": "1-1/2 NPT Internal Thread", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_shaft_01",
+    "name": "Stepped Drive Shaft",
+    "category": "Shaft",
+    "material": "Steel",
+    "dimensions": "OD30 x 250",
+    "features": [
+      {"id": "feat_1", "name": "Bearing Seat 1", "details": "Dia 25.00mm reamed h7", "balloon": 1},
+      {"id": "feat_2", "name": "Spline Section", "details": "Length 50mm, 6-key splines", "balloon": 2},
+      {"id": "feat_3", "name": "Threaded End", "details": "M20x1.5 thread, length 20mm", "balloon": 3}
+    ]
+  },
+  {
+    "id": "dr_shaft_02",
+    "name": "Pinion Gear Shaft",
+    "category": "Shaft",
+    "material": "Steel",
+    "dimensions": "OD40 x 180",
+    "features": [
+      {"id": "feat_1", "name": "Pinion Teeth", "details": "12-tooth integrated spur gear", "balloon": 1},
+      {"id": "feat_2", "name": "Keyway Slot", "details": "6mm wide, 40mm length keyway", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_shaft_03",
+    "name": "Stub Axle Shaft",
+    "category": "Shaft",
+    "material": "Steel",
+    "dimensions": "OD35 x 120",
+    "features": [
+      {"id": "feat_1", "name": "Wheel Flange End", "details": "Dia 80mm integrated circular flange", "balloon": 1},
+      {"id": "feat_2", "name": "Cotter Pin Hole", "details": "Dia 3.0mm cross-drilled hole", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_shaft_04",
+    "name": "Rotational Control Shaft",
+    "category": "Shaft",
+    "material": "Brass",
+    "dimensions": "OD12 x 100",
+    "features": [
+      {"id": "feat_1", "name": "Flat D-Cut", "details": "Flat depth 1.5mm, length 15mm", "balloon": 1},
+      {"id": "feat_2", "name": "Retaining Ring Groove", "details": "Width 1.2mm, depth 0.8mm", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_block_01",
+    "name": "Manifold Valve Block",
+    "category": "Block",
+    "material": "Aluminium",
+    "dimensions": "100x80x60",
+    "features": [
+      {"id": "feat_1", "name": "Cross Drill Passage", "details": "4x intersecting Dia 10mm channels", "balloon": 1},
+      {"id": "feat_2", "name": "Valve Cavities", "details": "3x stepped cavities with G3/8 threads", "balloon": 2},
+      {"id": "feat_3", "name": "Mounting Screws", "details": "4x M5 mounting holes", "balloon": 3}
+    ]
+  },
+  {
+    "id": "dr_block_02",
+    "name": "Clamping Vise Jaw Block",
+    "category": "Block",
+    "material": "Steel",
+    "dimensions": "150x50x40",
+    "features": [
+      {"id": "feat_1", "name": "V-Groove Guide", "details": "90 degree V-shape profile along face", "balloon": 1},
+      {"id": "feat_2", "name": "Counterbored Mounts", "details": "2x M8 counterbored screws", "balloon": 2}
+    ]
+  },
+  {
+    "id": "dr_block_03",
+    "name": "Pillow Block Housing",
+    "category": "Block",
+    "material": "Steel",
+    "dimensions": "140x60x80",
+    "features": [
+      {"id": "feat_1", "name": "Bearing Bore", "details": "Dia 47.00mm bearing seat H7", "balloon": 1},
+      {"id": "feat_2", "name": "Slotted Foot Holes", "details": "2x oblong slots 16x12mm", "balloon": 2},
+      {"id": "feat_3", "name": "Grease Nipple Thread", "details": "1x 1/4-28 UNF lubrication tap", "balloon": 3}
+    ]
+  },
+  {
+    "id": "dr_block_04",
+    "name": "Jig Location Block",
+    "category": "Block",
+    "material": "Steel",
+    "dimensions": "50x50x50",
+    "features": [
+      {"id": "feat_1", "name": "Precision Dowel Bore", "details": "2x Dia 12.00mm Dowel Reamed H7", "balloon": 1},
+      {"id": "feat_2", "name": "Grinding Relief Pocket", "details": "Undercut corner 3x3mm", "balloon": 2}
+    ]
+  }
+]

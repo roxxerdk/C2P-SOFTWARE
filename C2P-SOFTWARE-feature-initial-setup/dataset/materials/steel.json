@@ -1,0 +1,37 @@
+{
+  "material_name": "Steel",
+  "default_grade": "1018 Carbon Steel",
+  "properties": {
+    "density": "7.87 g/cm3",
+    "yield_strength": "370 MPa",
+    "hardness": "120 Brinell",
+    "machinability_rating": "50%"
+  },
+  "machining_parameters": {
+    "cutting_speed_sfm": {
+      "carbide_endmill_rough": 350,
+      "carbide_endmill_finish": 500,
+      "hss_drill": 100,
+      "carbide_drill": 200
+    },
+    "feed_per_tooth_inch": {
+      "rough_milling": 0.004,
+      "finish_milling": 0.0015,
+      "drilling": 0.003
+    }
+  },
+  "grades_available": [
+    {
+      "grade": "1018",
+      "description": "Mild low-carbon steel, excellent weldability, good case hardening."
+    },
+    {
+      "grade": "4140",
+      "description": "Chromoly medium-carbon steel, high strength and toughness, heat-treatable."
+    },
+    {
+      "grade": "304 Stainless",
+      "description": "Austenitic stainless steel, excellent corrosion resistance, work-hardens easily."
+    }
+  ]
+}
