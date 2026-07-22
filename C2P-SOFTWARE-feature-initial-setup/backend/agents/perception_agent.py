@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 from PIL import Image
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Force load .env from backend root directory
 backend_dir = Path(__file__).resolve().parent.parent

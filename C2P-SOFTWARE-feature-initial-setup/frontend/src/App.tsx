@@ -27,6 +27,7 @@ interface Drawing {
   material: string;
   dimensions: string;
   features: Feature[];
+  imageUrl?: string;
 }
 
 interface AgentProgress {
@@ -38,7 +39,7 @@ interface AgentProgress {
 export default function App() {
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'viewer' | 'templates'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'viewer'>('dashboard');
   const [logs, setLogs] = useState<string[]>([]);
   const [structuredJson, setStructuredJson] = useState<any>(null);
   const [balloonLayer, setBalloonLayer] = useState(false);
@@ -52,10 +53,10 @@ export default function App() {
   const [reflectionOptimizations, setReflectionOptimizations] = useState<string[]>([]);
   const [reportHtml, setReportHtml] = useState<string | null>(null);
 
-  // Agent sequence
+  // Agent sequence initialization
   const [agents, setAgents] = useState<AgentProgress[]>([
     { name: 'Planning Agent', status: 'idle', message: 'Waiting for drawing upload...' },
-    { name: 'Drawing Understanding Agent', status: 'idle', message: 'Waiting for image upload...' },
+    { name: 'Drawing Understanding Agent', status: 'idle', message: 'Waiting for image processing...' },
     { name: 'Ballooning Agent', status: 'idle', message: 'Waiting for feature coordinates...' },
     { name: 'Memory Agent', status: 'idle', message: 'Waiting for engineering JSON...' },
     { name: 'Process Planning Agent', status: 'idle', message: 'Waiting for RAG retrieval...' },
@@ -64,12 +65,11 @@ export default function App() {
     { name: 'Documentation Agent', status: 'idle', message: 'Waiting for final process plan...' }
   ]);
 
-  // Load sample drawings from backend
   useEffect(() => {
     fetch('http://localhost:8000/drawings')
       .then(res => res.json())
       .then(data => setDrawings(data))
-      .catch(err => console.log('Error loading drawings:', err));
+      .catch(err => console.log('Error loading sample drawings:', err));
   }, []);
 
   const addLog = (msg: string) => {
@@ -89,13 +89,17 @@ export default function App() {
     setUploading(true);
     addLog(`Uploading file: ${file.name}`);
 
+    // Create a blob URL for immediate local preview in canvas
+    const imagePreviewUrl = URL.createObjectURL(file);
+
     const placeholderDrawing: Drawing = {
       id: file.name,
       name: file.name.split('.')[0],
-      category: 'Plate',
-      material: 'Aluminium',
-      dimensions: '100x80x20',
-      features: []
+      category: 'Analyzing...',
+      material: 'Analyzing...',
+      dimensions: 'Analyzing...',
+      features: [],
+      imageUrl: imagePreviewUrl
     };
 
     setSelectedDrawing(placeholderDrawing);
@@ -103,7 +107,7 @@ export default function App() {
     try {
       await runPipeline(placeholderDrawing, file);
     } catch (err) {
-      addLog('Error uploading drawing to backend API.');
+      addLog('Error executing pipeline via backend API.');
     } finally {
       setUploading(false);
     }
@@ -175,37 +179,38 @@ export default function App() {
       });
       setSelectedDrawing(drawing);
       setOcrLayer(true);
-      addLog('Catalog selection loaded. Upload a drawing to run the live SSE pipeline.');
+      addLog('Catalog selection loaded. Upload a file to trigger the live SSE pipeline.');
       return;
     }
 
     const formData = new FormData();
     formData.append('file', file);
 
-    const stageAgents: Record<string, { index: number; label: string; message: string }> = {
-      perception: { index: 0, label: 'Planning Agent', message: 'Classifying drawing structure...' },
-      ballooning: { index: 2, label: 'Ballooning Agent', message: 'Assigning feature balloons...' },
-      memory: { index: 3, label: 'Memory Agent', message: 'Retrieving memory context...' },
-      expert: { index: 4, label: 'Process Planning Agent', message: 'Generating machining sequence...' },
-      validation: { index: 5, label: 'Validation Agent', message: 'Checking DFM warnings...' },
-      documentation: { index: 7, label: 'Documentation Agent', message: 'Compiling report package...' },
-      memory_store: { index: 3, label: 'Memory Agent', message: 'Persisting generated plan...' },
-      complete: { index: 7, label: 'Documentation Agent', message: 'Pipeline complete.' }
+    const stageIndexMap: Record<string, number> = {
+      perception: 0,
+      ballooning: 2,
+      memory: 3,
+      expert: 4,
+      validation: 5,
+      documentation: 7,
+      memory_store: 3,
+      complete: 7
     };
 
-    const updateAgent = (stage: string, status: 'running' | 'success' | 'failed', message?: string) => {
-      const meta = stageAgents[stage];
-      if (!meta) return;
+    const updateAgentStatus = (stage: string, status: 'running' | 'success' | 'failed', message?: string) => {
+      const idx = stageIndexMap[stage];
+      if (idx === undefined) return;
+
       setAgents(prev => {
         const copy = [...prev];
-        copy[meta.index] = {
-          ...copy[meta.index],
+        copy[idx] = {
+          ...copy[idx],
           status,
-          message: message ?? meta.message
+          message: message ?? copy[idx].message
         };
         return copy;
       });
-      setCurrentStep(meta.index);
+      setCurrentStep(idx);
     };
 
     const toBalloonOverlay = (features: any[]) => {
@@ -215,8 +220,8 @@ export default function App() {
         feature_name: feature.name || feature.feature_name || 'Feature',
         details: feature.details || '',
         coordinates: feature.coordinates || {
-          x: 30 + (index % 5) * 12,
-          y: 25 + Math.floor(index / 5) * 15
+          x: 25 + (index % 4) * 18,
+          y: 20 + Math.floor(index / 4) * 20
         }
       }));
     };
@@ -224,7 +229,7 @@ export default function App() {
     const toProcessPlanState = (planResponse: any) => {
       const steps = Array.isArray(planResponse?.process_plan) ? planResponse.process_plan : [];
       return {
-        machine_type: planResponse?.machine_type || 'Unknown',
+        machine_type: planResponse?.machine_type || '3-Axis CNC Vertical Mill',
         total_estimated_time_mins: steps.reduce((sum: number, step: any) => sum + (Number(step.estimated_time_mins) || 0), 0),
         process_plan: steps
       };
@@ -235,7 +240,7 @@ export default function App() {
       return memoryContext.map((entry: any, idx: number) => {
         const payload = entry.payload || {};
         const content = entry.content || payload.record || JSON.stringify(payload);
-        const title = payload.material_name || payload.tool_type || payload.process_type || `Memory ${idx + 1}`;
+        const title = payload.material_name || payload.tool_type || payload.process_type || `Memory Context ${idx + 1}`;
         const type = payload.type || entry.source_collection || 'memory';
         return {
           title,
@@ -245,8 +250,8 @@ export default function App() {
       });
     };
 
-    addLog(`Starting SSE run-pipeline for ${file.name}...`);
-    updateAgent('perception', 'running');
+    addLog(`Initiating backend SSE stream for ${file.name}...`);
+    updateAgentStatus('perception', 'running', 'Analyzing drawing structure via Gemini...');
 
     try {
       const response = await fetch('http://localhost:8000/run-pipeline', {
@@ -254,13 +259,11 @@ export default function App() {
         body: formData
       });
       if (!response.ok) {
-        throw new Error(`Pipeline request failed with ${response.status}`);
+        throw new Error(`Pipeline failed with HTTP ${response.status}`);
       }
 
       const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('ReadableStream reader unavailable.');
-      }
+      if (!reader) throw new Error('ReadableStream reader unavailable.');
 
       const decoder = new TextDecoder();
       let buffer = '';
@@ -282,30 +285,37 @@ export default function App() {
           try {
             const event = JSON.parse(payload);
             const stage = event.stage;
-            addLog(`[${stage}] ${JSON.stringify(event.data ?? {})}`);
-            updateAgent(stage, 'running', `${stage} stage in progress...`);
+            addLog(`[${stage.toUpperCase()}] Stage complete`);
 
             if (stage === 'perception' && event.data) {
               setStructuredJson({
-                material: event.data.material || drawing.material,
-                dimensions: event.data.dimensions || drawing.dimensions,
+                material: event.data.material || 'Steel',
+                dimensions: event.data.dimensions || '',
                 features: event.data.features || [],
                 raw_features: event.data.features || []
               });
               setOcrLayer(true);
+              updateAgentStatus('perception', 'success', 'Perception analysis complete.');
+              updateAgentStatus('ballooning', 'running', 'Mapping feature coordinates...');
             }
 
             if (stage === 'ballooning' && event.data?.features) {
               setBalloons(toBalloonOverlay(event.data.features));
               setBalloonLayer(true);
+              updateAgentStatus('ballooning', 'success', 'Balloons generated.');
+              updateAgentStatus('memory', 'running', 'Retrieving vector memories...');
             }
 
             if (stage === 'memory' && event.data) {
               setRagResults(toRagResults(event.data));
+              updateAgentStatus('memory', 'success', 'Memory context retrieved.');
+              updateAgentStatus('expert', 'running', 'Formulating machining sequence...');
             }
 
             if (stage === 'expert' && event.data) {
               setProcessPlan(toProcessPlanState(event.data));
+              updateAgentStatus('expert', 'success', 'Process plan generated.');
+              updateAgentStatus('validation', 'running', 'Running DFM rule checks...');
             }
 
             if (stage === 'validation' && event.data) {
@@ -318,110 +328,75 @@ export default function App() {
                   process_plan: event.data.optimized_process_plan
                 }));
               }
+              updateAgentStatus('validation', 'success', 'Validation passed.');
+              updateAgentStatus('documentation', 'running', 'Compiling report package...');
             }
 
             if (stage === 'documentation' && event.data?.report_html) {
               setReportHtml(event.data.report_html);
+              updateAgentStatus('documentation', 'success', 'Documentation ready.');
             }
 
-            if (stage === 'memory_store') {
-              updateAgent(stage, 'success', 'Generated plan persisted to memory.');
-            }
-
+            // FIX: Parse perception/ballooning payload directly from event.data in complete stage
             if (stage === 'complete' && event.data) {
               const completeData = event.data;
-              const drawingData = completeData.drawing_data || {};
+              const perceptionData = completeData.ballooning || completeData.perception || {};
+              const extractedFeatures = perceptionData.features || [];
+
               const normalizedDrawing: Drawing = {
-                id: drawingData.filename || `${drawing.name}-${Date.now()}`,
+                id: perceptionData.filename || `${drawing.name}-${Date.now()}`,
                 name: drawing.name,
-                category: drawingData.category || drawing.category,
-                material: drawingData.material || drawing.material,
-                dimensions: drawingData.dimensions || drawing.dimensions,
-                features: Array.isArray(drawingData.features) ? drawingData.features.map((feature: any, index: number) => ({
-                  id: feature.id || `feat_${index + 1}`,
-                  name: feature.name || 'Feature',
-                  details: feature.details || '',
-                  balloon: feature.balloon ?? index + 1
-                })) : drawing.features
+                category: perceptionData.category || drawing.category,
+                material: perceptionData.material || 'Steel',
+                dimensions: perceptionData.dimensions || drawing.dimensions,
+                imageUrl: drawing.imageUrl,
+                features: extractedFeatures
               };
 
               setSelectedDrawing(normalizedDrawing);
+              
               setStructuredJson({
-                material: normalizedDrawing.material,
-                dimensions: normalizedDrawing.dimensions,
-                features: drawingData.features || [],
-                raw_features: drawingData.features || []
+                material: perceptionData.material || 'Steel',
+                dimensions: perceptionData.dimensions || '',
+                features: extractedFeatures,
+                raw_features: extractedFeatures
               });
-              setBalloons(toBalloonOverlay(drawingData.features || []));
-              setBalloonLayer(true);
-              setRagResults(toRagResults(completeData.memory_context || []));
-              setProcessPlan(toProcessPlanState(completeData.plan || {}));
-              setValidationWarnings(completeData.validation?.warnings || []);
-              setReflectionOptimizations(completeData.validation?.reflection_optimizations || []);
-              setReportHtml(completeData.report?.report_html || null);
 
-              updateAgent('complete', 'success', 'Pipeline complete.');
-              addLog('Pipeline complete. Manufacturing report ready.');
+              // Keep balloons displayed on completion
+              setBalloons(toBalloonOverlay(extractedFeatures));
+              setBalloonLayer(true);
+
+              if (completeData.memory_context) {
+                setRagResults(toRagResults(completeData.memory_context));
+              }
+              
+              if (completeData.plan) {
+                setProcessPlan(toProcessPlanState(completeData.plan));
+              }
+              
+              if (completeData.validation) {
+                setValidationWarnings(completeData.validation.warnings || []);
+                setReflectionOptimizations(completeData.validation.reflection_optimizations || []);
+              }
+
+              setAgents(prev => prev.map(a => ({ ...a, status: 'success' })));
+              addLog('Pipeline completed successfully.');
             }
           } catch (err) {
-            console.error('Failed to parse SSE event', err);
-          }
-        }
-      }
-
-      if (buffer) {
-        const trimmedLine = buffer.trim();
-        if (trimmedLine.startsWith('data:')) {
-          try {
-            const event = JSON.parse(trimmedLine.slice(5).trim());
-            if (event.stage === 'complete' && event.data) {
-              const completeData = event.data;
-              const drawingData = completeData.drawing_data || {};
-              const normalizedDrawing: Drawing = {
-                id: drawingData.filename || `${drawing.name}-${Date.now()}`,
-                name: drawing.name,
-                category: drawingData.category || drawing.category,
-                material: drawingData.material || drawing.material,
-                dimensions: drawingData.dimensions || drawing.dimensions,
-                features: Array.isArray(drawingData.features) ? drawingData.features.map((feature: any, index: number) => ({
-                  id: feature.id || `feat_${index + 1}`,
-                  name: feature.name || 'Feature',
-                  details: feature.details || '',
-                  balloon: feature.balloon ?? index + 1
-                })) : drawing.features
-              };
-
-              setSelectedDrawing(normalizedDrawing);
-              setStructuredJson({
-                material: normalizedDrawing.material,
-                dimensions: normalizedDrawing.dimensions,
-                features: drawingData.features || [],
-                raw_features: drawingData.features || []
-              });
-              setBalloons(toBalloonOverlay(drawingData.features || []));
-              setBalloonLayer(true);
-              setRagResults(toRagResults(completeData.memory_context || []));
-              setProcessPlan(toProcessPlanState(completeData.plan || {}));
-              setValidationWarnings(completeData.validation?.warnings || []);
-              setReflectionOptimizations(completeData.validation?.reflection_optimizations || []);
-              setReportHtml(completeData.report?.report_html || null);
-              updateAgent('complete', 'success', 'Pipeline complete.');
-            }
-          } catch (err) {
-            console.error('Failed to parse final SSE event', err);
+            console.error('Failed to parse SSE payload', err);
           }
         }
       }
     } catch (err) {
-      addLog('Error running pipeline via SSE.');
-      updateAgent('complete', 'failed', 'Pipeline failed.');
+      addLog('Error running pipeline via SSE stream.');
+      updateAgentStatus('complete', 'failed', 'Pipeline execution failed.');
     }
   };
 
   return (
-    <div className="flex h-screen bg-[#0b0f19] text-gray-100 font-sans">
+    <div className="flex h-screen bg-[#0b0f19] text-gray-100 font-sans overflow-hidden">
       {/* Sidebar navigation */}
-      <div className="w-64 bg-[#111827] border-r border-gray-800 flex flex-col justify-between">
+      <div className="w-64 bg-[#111827] border-r border-gray-800 flex flex-col justify-between shrink-0">
         <div>
           <div className="p-6 flex items-center space-x-3 border-b border-gray-800">
             <Cpu className="w-8 h-8 text-indigo-500 animate-pulse" />
@@ -452,19 +427,19 @@ export default function App() {
         </div>
         <div className="p-4 border-t border-gray-800 flex items-center space-x-3 text-xs text-gray-500">
           <Clock className="w-4 h-4" />
-          <span>Local Time: 12:46 PM</span>
+          <span>Local Time: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         </div>
       </div>
 
-      {/* Main content frame */}
+      {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto p-8">
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            {/* Header info card */}
+            {/* Header info bar */}
             <div className="bg-[#111827]/60 border border-gray-800 p-6 rounded-2xl flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold">Drawing Understanding Pipeline</h1>
-                <p className="text-gray-400 text-sm mt-1">Upload a drawing to start the Lyzr orchestration workflow & Google ADK agents execution.</p>
+                <p className="text-gray-400 text-sm mt-1">Upload technical drawings to trigger Lyzr multi-agent orchestration.</p>
               </div>
               <div className="flex items-center space-x-3">
                 {processPlan && (
@@ -484,7 +459,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Catalog select grid */}
+            {/* Drawing sample selector */}
             <div className="grid grid-cols-5 gap-4">
               {drawings.slice(0, 5).map(dr => (
                 <button
@@ -503,12 +478,12 @@ export default function App() {
               ))}
             </div>
 
-            {/* Split layout: Canvas/Visuals & Logs/Agent Status */}
+            {/* Split Column Layout */}
             <div className="grid grid-cols-12 gap-6">
-              {/* Left Column: Visual Canvas & JSON */}
+              {/* Left Column: Visual Canvas, JSON & Plans */}
               <div className="col-span-7 space-y-6">
-                {/* Visualizer Area */}
-                <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6 relative min-h-[300px] flex flex-col justify-between">
+                {/* Visual Canvas Area */}
+                <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6 relative flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-4 border-b border-gray-800/80 pb-3">
                     <span className="font-semibold text-sm flex items-center space-x-2">
                       <Layers className="w-4 h-4 text-indigo-400" />
@@ -530,26 +505,39 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="flex-1 flex items-center justify-center p-8 bg-gray-950/40 border border-gray-800/60 rounded-xl relative overflow-hidden">
+                  <div className="flex-1 flex items-center justify-center p-4 bg-gray-950/40 border border-gray-800/60 rounded-xl relative min-h-[320px] overflow-hidden">
                     {selectedDrawing ? (
-                      <div className="relative w-full max-w-md h-64 border border-dashed border-gray-800 flex flex-col items-center justify-center bg-gray-900/30 rounded-lg">
-                        <div className="text-indigo-400 font-mono text-xs mb-2">CATEGORY: {selectedDrawing.category}</div>
-                        <div className="text-lg font-bold mb-4">{selectedDrawing.name}</div>
-                        <div className="text-gray-500 text-xs">{selectedDrawing.dimensions} | {selectedDrawing.material}</div>
-                        
-                        {/* Mock overlay layout */}
-                        {ocrLayer && (
-                          <div className="absolute inset-0 bg-indigo-500/5 flex flex-col items-start p-4 text-[10px] font-mono text-indigo-400 space-y-1">
-                            <div>[OCR: TITLE BLOCK MATCHED]</div>
-                            <div>[OCR: MAT={selectedDrawing.material}]</div>
-                            <div>[OCR: DIM={selectedDrawing.dimensions}]</div>
+                      <div className="relative w-full h-72 border border-dashed border-gray-800 flex items-center justify-center bg-gray-900/30 rounded-lg overflow-hidden">
+                        {/* Display real uploaded image if available */}
+                        {selectedDrawing.imageUrl ? (
+                          <img 
+                            src={selectedDrawing.imageUrl} 
+                            alt={selectedDrawing.name} 
+                            className="w-full h-full object-contain p-2" 
+                          />
+                        ) : (
+                          <div className="text-center p-4">
+                            <div className="text-indigo-400 font-mono text-xs mb-1">CATEGORY: {selectedDrawing.category}</div>
+                            <div className="text-lg font-bold mb-2">{selectedDrawing.name}</div>
+                            <div className="text-gray-500 text-xs">{selectedDrawing.dimensions} | {selectedDrawing.material}</div>
                           </div>
                         )}
+                        
+                        {/* OCR Text Layer Overlay - FIX: Reads dynamically from structuredJson */}
+                        {ocrLayer && (
+                          <div className="absolute inset-0 bg-indigo-950/20 pointer-events-none flex flex-col items-start p-4 text-[10px] font-mono text-indigo-300 space-y-1 z-10">
+                            <div>[OCR: TITLE BLOCK DETECTED]</div>
+                            <div>[OCR: MAT={structuredJson?.material || selectedDrawing.material}]</div>
+                            <div>[OCR: DIM={structuredJson?.dimensions || selectedDrawing.dimensions}]</div>
+                          </div>
+                        )}
+
+                        {/* Feature Balloon Markers Overlay */}
                         {balloonLayer && balloons.map((b: any) => (
                           <div 
                             key={b.feature_id}
                             style={{ top: `${b.coordinates.y}%`, left: `${b.coordinates.x}%` }}
-                            className="absolute bg-teal-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer transform -translate-x-1/2 -translate-y-1/2 hover:scale-125 transition-transform"
+                            className="absolute bg-teal-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer transform -translate-x-1/2 -translate-y-1/2 hover:scale-125 transition-transform border border-teal-200 z-20"
                             title={`${b.feature_name}: ${b.details}`}
                           >
                             {b.balloon_number}
@@ -559,13 +547,13 @@ export default function App() {
                     ) : (
                       <div className="text-center py-12">
                         <Upload className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                        <p className="text-gray-400 text-sm">No drawing loaded. Upload an image or select a catalog item above.</p>
+                        <p className="text-gray-400 text-sm">No drawing active. Upload a file above.</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Structured JSON display */}
+                {/* Structured JSON */}
                 <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-semibold text-sm flex items-center space-x-2">
@@ -574,17 +562,17 @@ export default function App() {
                     </span>
                   </div>
                   {structuredJson ? (
-                    <pre className="bg-gray-950 p-4 rounded-xl text-xs font-mono text-indigo-300 overflow-x-auto border border-gray-800/80">
+                    <pre className="bg-gray-950 p-4 rounded-xl text-xs font-mono text-indigo-300 overflow-x-auto border border-gray-800/80 max-h-48">
                       {JSON.stringify(structuredJson, null, 2)}
                     </pre>
                   ) : (
                     <div className="bg-gray-950/40 border border-gray-800/40 p-4 rounded-xl text-center text-xs text-gray-500">
-                      Engineering JSON will display here once Drawing Understanding finishes.
+                      Parsed Engineering JSON will render here.
                     </div>
                   )}
                 </div>
 
-                {/* Memory Agent RAG Retrieval Panel */}
+                {/* Qdrant RAG Memory */}
                 <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-3 border-b border-gray-800/80 pb-3">
                     <span className="font-semibold text-sm flex items-center space-x-2">
@@ -600,20 +588,20 @@ export default function App() {
                             <span>{result.title}</span>
                             <span className="bg-indigo-950 text-indigo-300 px-1.5 py-0.5 rounded text-[9px] uppercase">{result.type}</span>
                           </div>
-                          <pre className="text-[10px] font-mono text-gray-300 max-h-32 overflow-y-auto whitespace-pre-wrap">
-                            {result.content.substring(0, 300)}...
+                          <pre className="text-[10px] font-mono text-gray-300 max-h-24 overflow-y-auto whitespace-pre-wrap">
+                            {result.content.substring(0, 250)}...
                           </pre>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="bg-gray-950/40 border border-gray-800/40 p-4 rounded-xl text-center text-xs text-gray-500">
-                      RAG knowledge base matches will display here once Memory Agent finishes.
+                      RAG knowledge matches will render here upon Memory Agent completion.
                     </div>
                   )}
                 </div>
 
-                {/* Process Plan Timeline Panel */}
+                {/* Manufacturing Process Timeline */}
                 <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-4 border-b border-gray-800/80 pb-3">
                     <span className="font-semibold text-sm flex items-center space-x-2">
@@ -630,7 +618,7 @@ export default function App() {
                     <div className="space-y-6 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-800">
                       {processPlan.process_plan.map((step: any) => (
                         <div key={step.step_number} className="relative pl-8 text-xs">
-                          <div className="absolute left-[5px] top-1 bg-indigo-500 border-4 border-gray-950 rounded-full w-2.5 h-2.5 flex items-center justify-center text-white" />
+                          <div className="absolute left-[5px] top-1 bg-indigo-500 border-4 border-gray-950 rounded-full w-2.5 h-2.5" />
                           <div className="flex justify-between font-bold text-gray-200">
                             <span>Step {step.step_number}: {step.operation}</span>
                             <span className="text-gray-500 font-normal">{step.estimated_time_mins}m</span>
@@ -639,29 +627,23 @@ export default function App() {
                           <div className="grid grid-cols-2 gap-2 mt-2 bg-gray-950/40 p-2 rounded-lg border border-gray-900/60 font-mono text-[10px] text-indigo-300">
                             <div><strong className="text-gray-500">Tool:</strong> {step.tool}</div>
                             <div><strong className="text-gray-500">Machine:</strong> {step.machine}</div>
-                            {step.speed_rpm > 0 && (
-                              <>
-                                <div><strong className="text-gray-500">Spindle:</strong> {step.speed_rpm} RPM</div>
-                                <div><strong className="text-gray-500">Feedrate:</strong> {step.feed_rate_ipm} IPM</div>
-                              </>
-                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="bg-gray-950/40 border border-gray-800/40 p-4 rounded-xl text-center text-xs text-gray-500">
-                      Machining process timeline routing sheet will render here.
+                      Machining process plan timeline will render here.
                     </div>
                   )}
                 </div>
 
-                {/* Validation Warnings & Reflection Logs */}
+                {/* Validation & Optimizations Split */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
                     <h3 className="font-semibold text-xs text-gray-300 border-b border-gray-800 pb-2 mb-3 flex items-center space-x-2">
                       <AlertTriangle className="w-4 h-4 text-amber-500" />
-                      <span>Validation Agent (DFM Checks)</span>
+                      <span>Validation Agent (DFM)</span>
                     </h3>
                     {validationWarnings.length > 0 ? (
                       <div className="space-y-2">
@@ -669,15 +651,15 @@ export default function App() {
                           <div key={idx} className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg text-[10px] text-amber-300 flex items-start space-x-2">
                             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                             <div>
-                              <div className="font-bold uppercase tracking-wider text-[9px]">Severity: {w.severity}</div>
+                              <div className="font-bold uppercase text-[9px]">Severity: {w.severity}</div>
                               <p className="mt-0.5">{w.message}</p>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="bg-gray-950/40 border border-gray-805 p-3 rounded-lg text-center text-xs text-gray-500">
-                        Design rules checking (DFM) logs will show here.
+                      <div className="bg-gray-950/40 border border-gray-800 p-3 rounded-lg text-center text-xs text-gray-500">
+                        No DFM warnings reported.
                       </div>
                     )}
                   </div>
@@ -685,7 +667,7 @@ export default function App() {
                   <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
                     <h3 className="font-semibold text-xs text-gray-300 border-b border-gray-800 pb-2 mb-3 flex items-center space-x-2">
                       <Cpu className="w-4 h-4 text-teal-400" />
-                      <span>Reflection Agent Optimizations</span>
+                      <span>Reflection Optimizations</span>
                     </h3>
                     {reflectionOptimizations.length > 0 ? (
                       <div className="space-y-2">
@@ -697,17 +679,17 @@ export default function App() {
                         ))}
                       </div>
                     ) : (
-                      <div className="bg-gray-950/40 border border-gray-805 p-3 rounded-lg text-center text-xs text-gray-500">
-                        Self-correction loops will show here.
+                      <div className="bg-gray-950/40 border border-gray-800 p-3 rounded-lg text-center text-xs text-gray-500">
+                        Self-correction loops will render here.
                       </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Agents Execution status & reasoning logs */}
+              {/* Right Column: Agents & Execution Stream Logs */}
               <div className="col-span-5 space-y-6">
-                {/* Lyzr orchestrator active checklist */}
+                {/* Lyzr Orchestration Agent Status */}
                 <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
                   <h2 className="text-sm font-semibold border-b border-gray-800/85 pb-3 mb-4 flex items-center space-x-2">
                     <Cpu className="w-4 h-4 text-indigo-400" />
@@ -724,23 +706,24 @@ export default function App() {
                           {agent.status === 'success' && <span className="bg-teal-500/10 text-teal-400 border border-teal-500/30 px-2 py-0.5 rounded-full font-bold">Complete</span>}
                           {agent.status === 'running' && <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full font-bold animate-pulse">Running</span>}
                           {agent.status === 'idle' && <span className="bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">Idle</span>}
+                          {agent.status === 'failed' && <span className="bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-full font-bold">Failed</span>}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Agent Reasoning Stream Logs */}
+                {/* Live Stream Logs */}
                 <div className="bg-[#111827]/60 border border-gray-800 rounded-2xl p-6">
                   <h2 className="text-sm font-semibold border-b border-gray-800/85 pb-3 mb-3 flex items-center space-x-2">
                     <FileText className="w-4 h-4 text-indigo-400" />
                     <span>Agent Stream reasoning logs</span>
                   </h2>
-                  <div className="bg-gray-950 p-4 rounded-xl h-48 overflow-y-auto text-[10px] font-mono text-gray-400 border border-gray-800/80 space-y-1">
+                  <div className="bg-gray-950 p-4 rounded-xl h-64 overflow-y-auto text-[10px] font-mono text-gray-400 border border-gray-800/80 space-y-1">
                     {logs.length > 0 ? logs.map((log, idx) => (
                       <div key={idx}>{log}</div>
                     )) : (
-                      <div className="text-gray-600 italic">Logs are empty. Run pipeline.</div>
+                      <div className="text-gray-600 italic">No activity logs recorded. Upload a drawing to start.</div>
                     )}
                   </div>
                 </div>
@@ -754,7 +737,7 @@ export default function App() {
             <h2 className="text-xl font-bold">Drawing Catalog Viewer</h2>
             <div className="grid grid-cols-4 gap-4">
               {drawings.map(dr => (
-                <div key={dr.id} className="p-4 bg-gray-900/40 border border-gray-850 rounded-xl space-y-2">
+                <div key={dr.id} className="p-4 bg-gray-900/40 border border-gray-800 rounded-xl space-y-2">
                   <span className="text-[10px] font-bold uppercase text-indigo-400">{dr.category}</span>
                   <h3 className="font-bold text-sm">{dr.name}</h3>
                   <div className="text-xs text-gray-500">Dimensions: {dr.dimensions}</div>

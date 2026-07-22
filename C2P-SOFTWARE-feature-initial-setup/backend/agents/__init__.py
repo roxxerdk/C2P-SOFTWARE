@@ -4,7 +4,7 @@ from .memory_agent import memory_agent
 from .expert_agent import expert_agent
 from .reflection_agent import reflection_agent
 from .documentation_agent import documentation_agent
-from .pipeline import run_full_pipeline, pipeline_agent
+from .pipeline import run_full_pipeline, pipeline_agent, lyzr_pipeline_wrapper
 
 __all__ = [
     "perception_agent",
@@ -15,4 +15,5 @@ __all__ = [
     "documentation_agent",
     "run_full_pipeline",
     "pipeline_agent",
+    "lyzr_pipeline_wrapper",
 ]

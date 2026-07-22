@@ -7,6 +7,7 @@ from .expert_agent import expert_agent, expert_llm_agent
 from .reflection_agent import reflection_agent, reflection_llm_agent
 from .documentation_agent import documentation_agent, documentation_llm_agent
 from google.adk.agents import SequentialAgent
+from lyzr_wrapper import build_lyzr_pipeline_wrapper
 
 
 def run_full_pipeline(image_bytes: bytes, filename: str) -> Dict[str, Any]:
@@ -92,3 +93,7 @@ pipeline_agent = SequentialAgent(
         documentation_llm_agent,
     ],
 )
+
+lyzr_pipeline_wrapper = build_lyzr_pipeline_wrapper(run_full_pipeline)
+
+__all__ = ["run_full_pipeline", "pipeline_agent", "lyzr_pipeline_wrapper"]
